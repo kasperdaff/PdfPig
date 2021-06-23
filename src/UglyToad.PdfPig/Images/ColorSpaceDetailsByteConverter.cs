@@ -30,14 +30,18 @@
                 return decoded.ToArray();
             }
 
+            var hasPotentialEndOfLineMarker = HasPotentialEndOfLineMarker(decoded, out var endOfLineMarkerLength);
+
             if (bitsPerComponent != 8)
             {
                 // Unpack components such that they occupy one byte each
                 decoded = UnpackComponents(decoded, bitsPerComponent);
             }
 
+            var isIndexedColorSpaceDetails = details is IndexedColorSpaceDetails;
+
             // Remove padding bytes when the stride width differs from the image width
-            var bytesPerPixel = details is IndexedColorSpaceDetails ? 1 : GetBytesPerPixel(details);
+            var bytesPerPixel = isIndexedColorSpaceDetails ? 1 : GetBytesPerPixel(details);
             var strideWidth = decoded.Count / imageHeight / bytesPerPixel;
             if (strideWidth != imageWidth)
             {
@@ -63,7 +67,48 @@
                 decoded = TransformToRgbGrayScale(calGray, decoded);
             }
 
-            return decoded.ToArray();
+            var numberOfComponents = GetBytesPerPixel(details);
+            var requiredSize = imageWidth * imageHeight * numberOfComponents;
+
+            // Spec, p. 37: "...error if the stream contains too much data, with the exception that
+            // there may be an extra end-of-line marker..."
+            // var multiplier = details is IndexedColorSpaceDetails ? numberOfComponents : 1;
+            var multiplier = 8 / bitsPerComponent * (isIndexedColorSpaceDetails ? numberOfComponents : 1);
+
+            return decoded.Take(requiredSize).ToArray();
+
+            //if (decoded.Count > requiredSize && hasPotentialEndOfLineMarker)
+            //{
+            //    if (decoded.Count == requiredSize + multiplier ||
+            //        (decoded.Count == requiredSize + 2 * multiplier && endOfLineMarkerLength == 2))
+            //    {
+            //        return decoded.Take(requiredSize).ToArray();
+            //    }
+            //}
+
+            //return decoded.ToArray();
+        }
+
+        private static bool HasPotentialEndOfLineMarker(IReadOnlyList<byte> decoded, out int endOfMarkerLength)
+        {
+            endOfMarkerLength = 0;
+
+            // The combination of a CARRIAGE RETURN followed immediately by a LINE FEED is treated as one EOL marker.
+            if (decoded.Count > 1
+                && decoded[decoded.Count - 2] == ReadHelper.AsciiCarriageReturn
+                && decoded[decoded.Count - 1] == ReadHelper.AsciiLineFeed)
+            {
+                endOfMarkerLength = 2;
+                return true;
+            }
+
+            if (decoded.Count > 0 && decoded[decoded.Count - 1] == ReadHelper.AsciiLineFeed)
+            {
+                endOfMarkerLength = 1;
+                return true;
+            }
+
+            return false;
         }
 
         private static int GetBytesPerPixel(ColorSpaceDetails details)

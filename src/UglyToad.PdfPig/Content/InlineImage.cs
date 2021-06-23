@@ -129,7 +129,7 @@
         /// <inheritdoc />
         public override string ToString()
         {
-            return $"Inline Image (w {Bounds.Width}, h {Bounds.Height})";
+            return $"Inline Image (w {Bounds.Width}, h {Bounds.Height}): {ImageDictionary}";
         }
     }
 }

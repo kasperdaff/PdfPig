@@ -25,7 +25,7 @@
 
             if (sum != table.CheckSum)
             {
-                Trace.TraceWarning("Table with invalid checksum found in TrueType font file.");
+                //Trace.TraceWarning("Table with invalid checksum found in TrueType font file.");
             }
 
             if (typeof(T) == typeof(CMapTable))

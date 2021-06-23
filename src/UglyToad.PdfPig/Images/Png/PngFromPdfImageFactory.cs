@@ -2,7 +2,6 @@
 {
     using Content;
     using Graphics.Colors;
-    using UglyToad.PdfPig.Core;
 
     internal static class PngFromPdfImageFactory
     {
@@ -39,17 +38,9 @@
                 var builder = PngBuilder.Create(image.WidthInSamples, image.HeightInSamples, false);
 
                 var requiredSize = (image.WidthInSamples * image.HeightInSamples * numberOfComponents);
-
                 var actualSize = bytesPure.Count;
-                var isCorrectlySized = bytesPure.Count == requiredSize ||
-                    // Spec, p. 37: "...error if the stream contains too much data, with the exception that
-                    // there may be an extra end-of-line marker..."
-                    (actualSize == requiredSize + 1 && bytesPure[actualSize - 1] == ReadHelper.AsciiLineFeed) ||
-                    (actualSize == requiredSize + 1 && bytesPure[actualSize - 1] == ReadHelper.AsciiCarriageReturn) ||
-                    // The combination of a CARRIAGE RETURN followed immediately by a LINE FEED is treated as one EOL marker.
-                    (actualSize == requiredSize + 2 &&
-                        bytesPure[actualSize - 2] == ReadHelper.AsciiCarriageReturn &&
-                        bytesPure[actualSize - 1] == ReadHelper.AsciiLineFeed);
+
+                var isCorrectlySized = bytesPure.Count == requiredSize;
 
                 if (!isCorrectlySized)
                 {
